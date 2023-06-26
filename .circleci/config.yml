@@ -1,0 +1,45 @@
+version: 2
+jobs:
+  build:
+    docker:
+      - image: circleci/node:8
+    branches:
+      only:
+        - master
+    steps:
+      - add_ssh_keys:
+          fingerprints:
+            - "9a:4d:bc:06:da:a9:d9:b5:d8:20:08:90:e4:6c:de:91"
+
+      - checkout
+
+      # Download and cache dependencies
+      - restore_cache:
+          keys:
+            - v1-dependencies-{{ checksum "package.json" }}
+            # fallback to using the latest cache if no exact match is found
+            - v1-dependencies-
+
+      - run: sudo npm install -g @angular/cli@^6.0.0-rc.2
+      - run: npm install angular-cli-ghpages
+      - run: npm install
+
+      - save_cache:
+          paths:
+            - node_modules
+          key: v1-dependencies-{{ checksum "package.json" }}
+
+      - run:
+          name: Generate Build
+          command: ng build --prod --base-href "https://ivandru.github.io/crypto-dashboard/"
+
+      - run:
+          name: Set GitHub Email
+          command: git config --global user.email "$GH_EMAIL"
+
+      - run:
+          name: Set GitHub Username
+          command: git config --global user.name "$GH_USERNAME"
+
+      - run:
+          command: npx angular-cli-ghpages --dir=dist/crypto-dasboard --branch gh-pages --no-silent
